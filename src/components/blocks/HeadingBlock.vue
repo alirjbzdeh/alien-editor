@@ -1,0 +1,118 @@
+<script setup lang="ts">
+import { ref, onMounted, watch, inject, nextTick } from 'vue'
+import type { HeadingBlock, HeadingLevel, EditorContext } from '@/types'
+
+const props = defineProps<{ block: HeadingBlock }>()
+
+const editor = inject<EditorContext>('alienEditor')!
+const el = ref<HTMLElement | null>(null)
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let isUpdatingFromModel = false
+
+const headingClasses: Record<HeadingLevel, string> = {
+  1: 'text-5xl font-bold',
+  2: 'text-4xl font-bold',
+  3: 'text-3xl font-semibold',
+  4: 'text-2xl font-semibold',
+  5: 'text-xl font-medium',
+  6: 'text-lg font-medium',
+}
+
+onMounted(() => {
+  if (el.value && el.value.innerHTML !== props.block.html) {
+    el.value.innerHTML = props.block.html
+  }
+})
+
+watch(
+  () => props.block.html,
+  (newHtml) => {
+    if (el.value && !isUpdatingFromModel && el.value.innerHTML !== newHtml) {
+      el.value.innerHTML = newHtml
+    }
+  },
+)
+
+function onInput() {
+  if (!el.value) return
+  isUpdatingFromModel = true
+  editor.updateBlock(props.block.id, { html: el.value.innerHTML } as any)
+  isUpdatingFromModel = false
+
+  if (debounceTimer) clearTimeout(debounceTimer)
+  debounceTimer = setTimeout(() => editor.pushSnapshot(), 500)
+}
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    const newId = editor.addBlockAfter(props.block.id, 'paragraph')
+    nextTick(() => {
+      const newEl = document.querySelector(`[data-block-id="${newId}"]`) as HTMLElement | null
+      newEl?.focus()
+    })
+  }
+
+  if (e.key === 'Backspace' && el.value?.innerHTML === '') {
+    e.preventDefault()
+    const blocks = editor.blocks.value
+    const idx = blocks.findIndex(b => b.id === props.block.id)
+    const prevId = idx > 0 ? blocks[idx - 1].id : null
+    editor.removeBlock(props.block.id)
+    if (prevId) {
+      nextTick(() => {
+        const prevEl = document.querySelector(`[data-block-id="${prevId}"]`) as HTMLElement | null
+        prevEl?.focus()
+      })
+    }
+  }
+}
+
+function onFocus() {
+  editor.activeBlockId.value = props.block.id
+}
+
+function setLevel(level: HeadingLevel) {
+  editor.pushSnapshot()
+  editor.updateBlock(props.block.id, { level } as any)
+}
+</script>
+
+<template>
+  <div class="ae-heading-block">
+    <!-- Level selector shown on hover/focus -->
+    <div class="ae-heading-level-selector flex gap-1 mb-1 opacity-0 focus-within:opacity-100 hover:opacity-100 transition-opacity">
+      <button
+        v-for="level in [1, 2, 3, 4, 5, 6]"
+        :key="level"
+        class="text-xs px-1.5 py-0.5 rounded border transition-colors"
+        :class="block.level === level
+          ? 'bg-gray-800 text-white border-gray-800'
+          : 'border-gray-300 text-gray-500 hover:border-gray-500'"
+        @mousedown.prevent="setLevel(level as HeadingLevel)"
+      >
+        H{{ level }}
+      </button>
+    </div>
+
+    <component
+      :is="`h${block.level}`"
+      ref="el"
+      :data-block-id="block.id"
+      :data-placeholder="`Heading ${block.level}`"
+      contenteditable="true"
+      spellcheck="true"
+      class="ae-heading-content outline-none min-h-[1.2em] w-full"
+      :class="[
+        headingClasses[block.level],
+        block.align !== 'left' ? `text-${block.align}` : '',
+        ...block.classes,
+      ]"
+      @input="onInput"
+      @keydown="onKeydown"
+      @focus="onFocus"
+      @mousedown="editor.saveSelection()"
+      @keyup="editor.saveSelection()"
+    />
+  </div>
+</template>

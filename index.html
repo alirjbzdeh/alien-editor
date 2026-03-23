@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlienEditor — Live Demo</title>
+
+  <!-- Tailwind CDN (dev/playground version — scans DOM for classes) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- AlienEditor component styles -->
+  <link rel="stylesheet" href="./dist/style.css" />
+
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+    /* Demo page chrome */
+    .demo-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      border-bottom: 1px solid #334155;
+    }
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 11px; font-weight: 600; padding: 2px 8px;
+      border-radius: 99px; letter-spacing: .04em; text-transform: uppercase;
+    }
+
+    /* Output panel */
+    .output-pre {
+      font-family: 'Menlo', 'Monaco', 'Fira Code', monospace;
+      font-size: 12px; line-height: 1.6;
+      white-space: pre-wrap; word-break: break-all;
+      color: #a3e635;
+    }
+
+    /* Upload toast */
+    #upload-toast {
+      transition: opacity .3s, transform .3s;
+    }
+    #upload-toast.hidden { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Header -->
+  <header class="demo-header px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-white font-bold text-lg leading-tight">alien-editor</h1>
+        <p class="text-slate-400 text-xs">Vue 3 · Block-based · Tailwind CSS</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="badge bg-violet-900/60 text-violet-300 border border-violet-700/50">v0.1.0</span>
+      <span class="badge bg-green-900/60 text-green-400 border border-green-700/50">
+        <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+        Live Demo
+      </span>
+    </div>
+  </header>
+
+  <!-- Main layout -->
+  <div id="app" class="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-6">
+
+    <!-- Left: Editor -->
+    <div>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-gray-700 font-semibold text-sm uppercase tracking-wide">Editor</h2>
+        <span class="text-xs text-gray-400">Drag blocks · Ctrl+Z to undo · Switch to Code or Preview mode</span>
+      </div>
+      <alien-editor
+        v-model="html"
+        placeholder="Start writing. Try bold, headings, colors, drag & drop..."
+        :colors="colors"
+        :modules="modules"
+        @upload="handleUpload"
+      />
+    </div>
+
+    <!-- Right: Output panels -->
+    <div class="flex flex-col gap-4">
+
+      <!-- Stats bar -->
+      <div class="grid grid-cols-3 gap-2">
+        <div class="bg-white rounded-lg border border-gray-100 p-3 text-center shadow-sm">
+          <p class="text-2xl font-bold text-violet-600">{{ blockCount }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">Blocks</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-3 text-center shadow-sm">
+          <p class="text-2xl font-bold text-blue-600">{{ wordCount }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">Words</p>
+        </div>
+        <div class="bg-white rounded-lg border border-gray-100 p-3 text-center shadow-sm">
+          <p class="text-2xl font-bold text-emerald-600">{{ html.length }}</p>
+          <p class="text-xs text-gray-500 mt-0.5">Chars</p>
+        </div>
+      </div>
+
+      <!-- HTML Output -->
+      <div class="bg-gray-950 rounded-xl border border-gray-800 overflow-hidden shadow-lg">
+        <div class="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
+          <div class="flex items-center gap-2">
+            <div class="flex gap-1.5">
+              <div class="w-3 h-3 rounded-full bg-red-500"></div>
+              <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+              <div class="w-3 h-3 rounded-full bg-green-500"></div>
+            </div>
+            <span class="text-gray-400 text-xs ml-1">HTML Output</span>
+          </div>
+          <button
+            class="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+            @click="copyHtml"
+          >
+            {{ copied ? '✓ Copied!' : 'Copy' }}
+          </button>
+        </div>
+        <div class="p-4 max-h-64 overflow-y-auto">
+          <pre class="output-pre">{{ html || '<!-- start typing in the editor -->' }}</pre>
+        </div>
+      </div>
+
+      <!-- Upload log -->
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+        <div class="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+          <span class="text-xs font-semibold text-gray-600 uppercase tracking-wide">@upload events</span>
+          <button
+            v-if="uploads.length"
+            class="text-xs text-gray-400 hover:text-gray-600"
+            @click="uploads = []"
+          >
+            Clear
+          </button>
+        </div>
+        <div class="p-3 max-h-40 overflow-y-auto">
+          <p v-if="!uploads.length" class="text-xs text-gray-400 text-center py-4">
+            Upload an image in the editor to see events here
+          </p>
+          <div
+            v-for="(u, i) in uploads"
+            :key="i"
+            class="flex items-start gap-2 text-xs py-1.5 border-b border-gray-50 last:border-0"
+          >
+            <span class="text-gray-300 font-mono">{{ String(i + 1).padStart(2, '0') }}</span>
+            <div>
+              <p class="font-medium text-gray-700">{{ u.name }}</p>
+              <p class="text-gray-400">{{ u.size }} · {{ u.type }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tips -->
+      <div class="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-xl border border-violet-100 p-4">
+        <p class="text-xs font-semibold text-violet-700 mb-2 uppercase tracking-wide">Tips</p>
+        <ul class="space-y-1.5 text-xs text-violet-800">
+          <li class="flex gap-2"><span class="text-violet-400">→</span> Select text → pick a color from the <strong>Colors</strong> menu</li>
+          <li class="flex gap-2"><span class="text-violet-400">→</span> Click <strong>+ Block</strong> to insert any block type</li>
+          <li class="flex gap-2"><span class="text-violet-400">→</span> Hover a block → drag handle appears on the left</li>
+          <li class="flex gap-2"><span class="text-violet-400">→</span> Insert the <strong>CTA Banner</strong> module from the <strong>{ }</strong> menu</li>
+          <li class="flex gap-2"><span class="text-violet-400">→</span> Switch to <strong>Code</strong> or <strong>Preview</strong> mode in the toolbar</li>
+          <li class="flex gap-2"><span class="text-violet-400">→</span> <kbd class="bg-white border border-violet-200 rounded px-1 font-mono">Ctrl+Z</kbd> to undo, <kbd class="bg-white border border-violet-200 rounded px-1 font-mono">Ctrl+Y</kbd> to redo</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Upload toast -->
+  <div
+    id="upload-toast"
+    class="fixed bottom-6 right-6 bg-gray-900 text-white text-sm px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 z-50"
+    :class="{ hidden: !showToast }"
+  >
+    <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+    </svg>
+    File received: <strong>{{ lastUploadName }}</strong>
+  </div>
+
+
+  <!-- Vue + AlienEditor via ES modules + importmap -->
+  <script type="importmap">
+    {
+      "imports": {
+        "vue": "https://unpkg.com/vue@3.4.21/dist/vue.esm-browser.js"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import { createApp, ref, computed } from 'vue'
+    import { AlienEditor } from './dist/alien-editor.js'
+
+    const app = createApp({
+      components: { AlienEditor },
+
+      setup() {
+        // ── Editor content ──────────────────────────────────────────────
+//         const html = ref(`<h2>Welcome to <span class="text-violet-600 font-bold">AlienEditor</span></h2>
+// <p>This is a <span class="font-bold">block-based</span> rich text editor built with <span class="italic">Vue 3</span> and <span class="underline">Tailwind CSS</span>.</p>
+// <p>Try <span class="text-rose-500 font-semibold">selecting text</span> and applying colors, bold, italic, or font sizes using the toolbar above.</p>
+// <ul class="list-disc list-inside"><li>Block-based editing</li><li>Drag and drop reordering</li><li>Undo / Redo support</li></ul>
+// <p class="text-center">You can also <span class="font-bold">align text</span> center, right, or justify.</p>`)
+
+const html = ref("")
+
+        // ── Custom colors ────────────────────────────────────────────────
+        const colors = [
+          { title: 'Rose Red',    key: 'rose',    class: 'text-rose-500' },
+          { title: 'Orange',      key: 'orange',  class: 'text-orange-500' },
+          { title: 'Amber',       key: 'amber',   class: 'text-amber-500' },
+          { title: 'Emerald',     key: 'emerald', class: 'text-emerald-600' },
+          { title: 'Sky Blue',    key: 'sky',     class: 'text-sky-500' },
+          { title: 'Indigo',      key: 'indigo',  class: 'text-indigo-600' },
+          { title: 'Violet',      key: 'violet',  class: 'text-violet-600' },
+          { title: 'Pink',        key: 'pink',    class: 'text-pink-500' },
+          { title: 'Slate Gray',  key: 'slate',   class: 'text-slate-500' },
+          { title: 'Dark',        key: 'dark',    class: 'text-gray-900' },
+        ]
+
+        // ── Custom modules ───────────────────────────────────────────────
+        const modules = [
+          {
+            title: 'CTA Banner',
+            key: 'cta',
+            module: `<div class="bg-gradient-to-r from-violet-600 to-indigo-600 text-white p-8 rounded-2xl text-center my-4">
+  <h2 class="text-3xl font-bold mb-2">Get Started Today</h2>
+  <p class="text-violet-200 mb-4">Join thousands of users already using AlienEditor.</p>
+  <a href="#" class="inline-block bg-white text-violet-700 font-semibold px-6 py-2.5 rounded-xl hover:bg-violet-50 transition-colors">Start Free Trial</a>
+</div>`,
+          },
+          {
+            title: 'Info Box',
+            key: 'info',
+            module: `<div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl flex gap-3 my-3">
+  <svg class="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>
+  <div><p class="font-semibold text-sm">Info</p><p class="text-sm mt-0.5">This is an informational message block.</p></div>
+</div>`,
+          },
+          {
+            title: 'Warning Box',
+            key: 'warn',
+            module: `<div class="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl flex gap-3 my-3">
+  <svg class="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+  <div><p class="font-semibold text-sm">Warning</p><p class="text-sm mt-0.5">Please review this carefully before proceeding.</p></div>
+</div>`,
+          },
+          {
+            title: 'Two Columns',
+            key: 'cols2',
+            module: `<div class="grid grid-cols-2 gap-4 my-4">
+  <div class="bg-gray-50 border border-gray-200 rounded-xl p-4"><p class="font-semibold text-gray-700">Column One</p><p class="text-sm text-gray-500 mt-1">Edit this content as needed.</p></div>
+  <div class="bg-gray-50 border border-gray-200 rounded-xl p-4"><p class="font-semibold text-gray-700">Column Two</p><p class="text-sm text-gray-500 mt-1">Edit this content as needed.</p></div>
+</div>`,
+          },
+          {
+            title: 'Code Snippet',
+            key: 'snippet',
+            module: `<pre class="bg-gray-900 text-green-400 p-4 rounded-xl font-mono text-sm my-3 overflow-x-auto"><code>import { AlienEditor } from 'alien-editor'
+
+// Use with v-model
+&lt;AlienEditor v-model="html" /&gt;</code></pre>`,
+          },
+        ]
+
+        // ── Upload handling ──────────────────────────────────────────────
+        const uploads = ref([])
+        const showToast = ref(false)
+        const lastUploadName = ref('')
+        let toastTimer = null
+
+        function handleUpload(file) {
+          uploads.value.unshift({
+            name: file.name,
+            size: formatBytes(file.size),
+            type: file.type || 'unknown',
+          })
+          lastUploadName.value = file.name
+          showToast.value = true
+          clearTimeout(toastTimer)
+          toastTimer = setTimeout(() => { showToast.value = false }, 3000)
+        }
+
+        function formatBytes(bytes) {
+          if (bytes < 1024) return bytes + ' B'
+          if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
+          return (bytes / 1048576).toFixed(1) + ' MB'
+        }
+
+        // ── Copy HTML ────────────────────────────────────────────────────
+        const copied = ref(false)
+        let copyTimer = null
+
+        function copyHtml() {
+          navigator.clipboard.writeText(html.value).then(() => {
+            copied.value = true
+            clearTimeout(copyTimer)
+            copyTimer = setTimeout(() => { copied.value = false }, 2000)
+          })
+        }
+
+        // ── Stats ────────────────────────────────────────────────────────
+        const wordCount = computed(() => {
+          const text = html.value.replace(/<[^>]*>/g, ' ').trim()
+          return text ? text.split(/\s+/).filter(Boolean).length : 0
+        })
+
+        const blockCount = computed(() => {
+          return (html.value.match(/<(p|h[1-6]|ul|ol|blockquote|pre|hr|img|video|a)[^>]*>/gi) || []).length
+        })
+
+        return {
+          html, colors, modules,
+          uploads, showToast, lastUploadName,
+          handleUpload,
+          copied, copyHtml,
+          wordCount, blockCount,
+        }
+      },
+    })
+
+    app.mount('#app')
+  </script>
+</body>
+</html>
