@@ -20,7 +20,7 @@ function extractExtraClasses(el: Element, exclude: string[] = []): string[] {
 export function useParser() {
   function parse(html: string): Block[] {
     if (!html || !html.trim()) {
-      return [{ id: pid(), type: 'paragraph', html: '', align: 'left', classes: [] }]
+      return []
     }
 
     // SSR safety: return a single paragraph block on server
@@ -170,9 +170,7 @@ export function useParser() {
       }
     }
 
-    return blocks.length > 0
-      ? blocks
-      : [{ id: pid(), type: 'paragraph', html: '', align: 'left', classes: [] }]
+    return blocks
   }
 
   return { parse }

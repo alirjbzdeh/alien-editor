@@ -51,7 +51,7 @@ const editor = inject<EditorContext>('alienEditor')!
     </div>
 
     <!-- Block action buttons -->
-    <div class="ae-block-actions absolute right-0 top-1/2 -translate-y-1/2 pl-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+    <div class="ae-block-actions absolute right-0 top-1/2 -translate-y-1/2 translate-x-full pl-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-0.5">
       <button
         class="ae-btn-add w-6 h-6 flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 rounded text-lg leading-none"
         title="Add block below"

@@ -5,6 +5,17 @@ import { tailwindMap } from '@/utils/tailwindMap'
 export function useFormatting(savedRange: Ref<Range | null>) {
   const { restoreSelection, getRange, isCollapsed } = useSelection(savedRange)
 
+  function notifyContentEditable(node: Node | null) {
+    let el: Node | null = node
+    while (el) {
+      if ((el as HTMLElement).contentEditable === 'true') {
+        ;(el as HTMLElement).dispatchEvent(new Event('input', { bubbles: true }))
+        return
+      }
+      el = el.parentNode
+    }
+  }
+
   /**
    * Wrap the current selection in a <span> with the given Tailwind class.
    * Uses Range.extractContents() to avoid document.execCommand (deprecated).
@@ -27,6 +38,7 @@ export function useFormatting(savedRange: Ref<Range | null>) {
     sel?.removeAllRanges()
     sel?.addRange(newRange)
 
+    notifyContentEditable(span)
     return span
   }
 
@@ -69,6 +81,7 @@ export function useFormatting(savedRange: Ref<Range | null>) {
       parent.removeChild(existing)
       // Normalize adjacent text nodes
       parent.normalize()
+      notifyContentEditable(parent)
     } else {
       wrapSelectionWithClass(className)
     }
@@ -135,6 +148,8 @@ export function useFormatting(savedRange: Ref<Range | null>) {
     const sel = window.getSelection()
     sel?.removeAllRanges()
     sel?.addRange(newRange)
+
+    notifyContentEditable(anchor)
   }
 
   /**

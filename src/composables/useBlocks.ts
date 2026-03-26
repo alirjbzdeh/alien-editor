@@ -57,10 +57,6 @@ export function useBlocks(blocks: Ref<Block[]>, pushSnapshot: () => void) {
     if (idx === -1) return
     pushSnapshot()
     blocks.value.splice(idx, 1)
-    // Always keep at least one block
-    if (blocks.value.length === 0) {
-      blocks.value.push(createDefaultBlock('paragraph'))
-    }
   }
 
   function moveBlock(fromId: string, toId: string) {

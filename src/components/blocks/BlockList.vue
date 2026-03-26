@@ -10,18 +10,13 @@ import VideoBlock from './VideoBlock.vue'
 import CodeBlock from './CodeBlock.vue'
 import DividerBlock from './DividerBlock.vue'
 import ButtonBlock from './ButtonBlock.vue'
+import ModuleBlock from './ModuleBlock.vue'
 
 const editor = inject<EditorContext>('alienEditor')!
-
-function addFirstBlock() {
-  if (editor.blocks.value.length === 0) {
-    editor.addBlockAt(0, 'paragraph')
-  }
-}
 </script>
 
 <template>
-  <div class="ae-block-list" @click.self="addFirstBlock">
+  <div class="ae-block-list">
     <BlockWrapper
       v-for="block in editor.blocks.value"
       :key="block.id"
@@ -59,18 +54,11 @@ function addFirstBlock() {
         v-else-if="block.type === 'button'"
         :block="block as any"
       />
-      <!-- Module block: render raw HTML -->
-      <div
+      <ModuleBlock
         v-else-if="block.type === 'module'"
-        class="ae-module-block"
-        v-html="(block as any).html"
+        :block="block as any"
       />
     </BlockWrapper>
 
-    <!-- Click below last block to add new paragraph -->
-    <div
-      class="ae-block-add-area h-8 cursor-text"
-      @click="editor.addBlockAfter(editor.blocks.value[editor.blocks.value.length - 1]?.id ?? '', 'paragraph')"
-    />
   </div>
 </template>
