@@ -36,11 +36,8 @@ function toggle() {
   if (isOpen.value) search.value = ''
 }
 
-function closeOnClickOutside(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  if (!target.closest('.ae-module-dropdown')) {
-    isOpen.value = false
-  }
+function closeOnClickOutside() {
+  isOpen.value = false
 }
 </script>
 

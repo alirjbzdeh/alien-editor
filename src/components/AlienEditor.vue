@@ -52,6 +52,32 @@ const imageUrlCallback = ref<((url: string) => void) | null>(null)
 // ─── Serialized HTML output ───────────────────────────────────────────────────
 const serializedHtml = computed(() => serialize(blocks.value))
 
+// ─── Code mode editable state ─────────────────────────────────────────────────
+const codeEditorValue = ref('')
+let codeUpdateTimer: ReturnType<typeof setTimeout> | null = null
+
+watch(mode, (newMode, oldMode) => {
+  if (newMode === 'code') {
+    codeEditorValue.value = serializedHtml.value
+  } else if (oldMode === 'code') {
+    if (codeUpdateTimer) {
+      clearTimeout(codeUpdateTimer)
+      codeUpdateTimer = null
+    }
+    blocks.value = parse(codeEditorValue.value)
+  }
+})
+
+function onCodeInput(e: Event) {
+  const html = (e.target as HTMLTextAreaElement).value
+  codeEditorValue.value = html
+  if (codeUpdateTimer) clearTimeout(codeUpdateTimer)
+  codeUpdateTimer = setTimeout(() => {
+    pushSnapshot()
+    blocks.value = parse(html)
+  }, 300)
+}
+
 // ─── Initialize blocks from modelValue ───────────────────────────────────────
 let isInitialized = false
 
@@ -141,7 +167,7 @@ provide('alienEditor', editorContext)
 </script>
 
 <template>
-  <div class="alien-editor ae-root border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
+  <div class="alien-editor ae-root border border-gray-200 rounded-xl bg-white shadow-sm">
     <!-- Toolbar -->
     <AlienToolbar />
 
@@ -153,12 +179,20 @@ provide('alienEditor', editorContext)
       <BlockList />
     </div>
 
-    <!-- Code mode: raw HTML output -->
+    <!-- Code mode: editable raw HTML -->
     <div
       v-else-if="mode === 'code'"
       class="ae-code-mode bg-gray-950 min-h-[300px] p-6"
     >
-      <pre class="text-green-400 font-mono text-sm leading-relaxed whitespace-pre-wrap break-all overflow-x-auto">{{ serializedHtml || '<!-- empty -->' }}</pre>
+      <textarea
+        class="w-full bg-transparent text-green-400 font-mono text-sm leading-relaxed resize-y outline-none min-h-[276px] whitespace-pre"
+        :value="codeEditorValue"
+        @input="onCodeInput"
+        spellcheck="false"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+      />
     </div>
 
     <!-- Preview mode: rendered output -->

@@ -29,11 +29,8 @@ function toggle() {
   }
 }
 
-function closeOnClickOutside(e: MouseEvent) {
-  const target = e.target as HTMLElement
-  if (!target.closest('.ae-color-picker')) {
-    isOpen.value = false
-  }
+function closeOnClickOutside() {
+  isOpen.value = false
 }
 </script>
 
