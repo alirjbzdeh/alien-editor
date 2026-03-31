@@ -38,6 +38,28 @@ function onInput() {
   }, 500)
 }
 
+function isAtStart(el: HTMLElement): boolean {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return false
+  const range = sel.getRangeAt(0)
+  if (!range.collapsed) return false
+  const testRange = document.createRange()
+  testRange.selectNodeContents(el)
+  testRange.collapse(true)
+  return range.compareBoundaryPoints(Range.START_TO_START, testRange) === 0
+}
+
+function isAtEnd(el: HTMLElement): boolean {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return false
+  const range = sel.getRangeAt(0)
+  if (!range.collapsed) return false
+  const testRange = document.createRange()
+  testRange.selectNodeContents(el)
+  testRange.collapse(false)
+  return range.compareBoundaryPoints(Range.END_TO_END, testRange) === 0
+}
+
 function onKeydown(e: KeyboardEvent) {
   // Enter without Shift → add new paragraph below
   if (e.key === 'Enter' && !e.shiftKey) {
@@ -50,18 +72,17 @@ function onKeydown(e: KeyboardEvent) {
     return
   }
 
-  // Backspace on empty block → remove and focus previous
-  if (e.key === 'Backspace' && el.value?.innerHTML === '') {
-    e.preventDefault()
-    const blocks = editor.blocks.value
-    const idx = blocks.findIndex(b => b.id === props.block.id)
-    const prevId = idx > 0 ? blocks[idx - 1].id : null
-    editor.removeBlock(props.block.id)
-    if (prevId) {
-      nextTick(() => {
-        const prevEl = document.querySelector(`[data-block-id="${prevId}"]`) as HTMLElement | null
-        prevEl?.focus()
-      })
+  // Prevent Backspace from deleting the block or merging with the previous block
+  if (e.key === 'Backspace' && el.value) {
+    if (el.value.innerHTML === '' || isAtStart(el.value)) {
+      e.preventDefault()
+    }
+  }
+
+  // Prevent Delete from merging with the next block
+  if (e.key === 'Delete' && el.value) {
+    if (el.value.innerHTML === '' || isAtEnd(el.value)) {
+      e.preventDefault()
     }
   }
 }

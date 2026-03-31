@@ -46,15 +46,8 @@ function onItemKeydown(index: number, e: KeyboardEvent) {
         itemRefs.value[focusIdx]?.focus()
       })
     } else if (target.innerHTML === '' && items.length === 1) {
-      // Last item empty → convert to paragraph
+      // Last item is empty — block can only be removed via the delete button
       e.preventDefault()
-      editor.pushSnapshot()
-      const newId = editor.addBlockAfter(props.block.id, 'paragraph')
-      editor.removeBlock(props.block.id)
-      nextTick(() => {
-        const newEl = document.querySelector(`[data-block-id="${newId}"]`) as HTMLElement | null
-        newEl?.focus()
-      })
     }
   }
 }

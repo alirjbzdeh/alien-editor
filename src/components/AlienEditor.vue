@@ -167,7 +167,7 @@ provide('alienEditor', editorContext)
 </script>
 
 <template>
-  <div class="alien-editor ae-root border border-gray-200 rounded-xl bg-white shadow-sm">
+  <div class="alien-editor ae-root border border-gray-200 rounded-xl bg-white shadow-sm w-full">
     <!-- Toolbar -->
     <AlienToolbar />
 
