@@ -1,11 +1,25 @@
 <script setup lang="ts">
-import { ref, nextTick, inject } from 'vue'
+import { ref, nextTick, inject, watch } from 'vue'
 import type { OrderedListBlock, UnorderedListBlock, EditorContext } from '@/types'
 
 const props = defineProps<{ block: OrderedListBlock | UnorderedListBlock }>()
 
 const editor = inject<EditorContext>('alienEditor')!
 const itemRefs = ref<HTMLElement[]>([])
+let isUpdatingFromInput = false
+
+watch(
+  () => props.block.items,
+  (newItems) => {
+    if (isUpdatingFromInput) return
+    nextTick(() => {
+      newItems.forEach((html, i) => {
+        const el = itemRefs.value[i]
+        if (el && el.innerHTML !== html) el.innerHTML = html
+      })
+    })
+  },
+)
 
 function setItemRef(el: HTMLElement | null, index: number) {
   if (el) itemRefs.value[index] = el
@@ -15,7 +29,9 @@ function onItemInput(index: number, e: Event) {
   const target = e.target as HTMLElement
   const newItems = [...props.block.items]
   newItems[index] = target.innerHTML
+  isUpdatingFromInput = true
   editor.updateBlock(props.block.id, { items: newItems } as any)
+  isUpdatingFromInput = false
 }
 
 function onItemKeydown(index: number, e: KeyboardEvent) {

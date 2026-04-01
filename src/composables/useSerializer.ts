@@ -87,7 +87,7 @@ function serializeBlock(block: Block): string {
     case 'button': {
       const b = block as ButtonBlock
       const cls = b.classes.filter(Boolean)
-      return `<a href="${escapeAttr(b.href)}"${classAttr(cls)}>${b.label || 'Button'}</a>`
+      return `<a href="${escapeAttr(b.href)}" data-alien-block="button"${classAttr(cls)}>${b.label || 'Button'}</a>`
     }
 
     case 'module': {

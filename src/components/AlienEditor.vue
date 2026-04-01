@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { provide, watch, ref, onMounted, onUnmounted, computed } from 'vue'
-import type { ColorOption, ModuleOption, EditorContext, Block } from '@/types'
+import type { ColorOption, ModuleOption, EditorContext } from '@/types'
 import { useEditorState } from '@/composables/useEditorState'
 import { useHistory } from '@/composables/useHistory'
 import { useSelection } from '@/composables/useSelection'
@@ -37,7 +37,7 @@ const emit = defineEmits<{
 // ─── Core state ───────────────────────────────────────────────────────────────
 const { blocks, mode, activeBlockId, savedRange } = useEditorState()
 const { pushSnapshot, undo, redo, canUndo, canRedo } = useHistory(blocks)
-const { saveSelection, restoreSelection, getRange } = useSelection(savedRange)
+const { saveSelection, restoreSelection } = useSelection(savedRange)
 const { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock } = useBlocks(blocks, pushSnapshot)
 const { dragState, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd } = useDragDrop(blocks, moveBlock)
 const { serialize } = useSerializer()

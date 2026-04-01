@@ -20,12 +20,28 @@ export function useFormatting(savedRange: Ref<Range | null>) {
    * Wrap the current selection in a <span> with the given Tailwind class.
    * Uses Range.extractContents() to avoid document.execCommand (deprecated).
    */
-  function wrapSelectionWithClass(className: string) {
+  function stripSpansFromFragment(fragment: DocumentFragment, predicate: (cls: string) => boolean) {
+    const spans = Array.from(fragment.querySelectorAll('span'))
+    for (const span of spans) {
+      if (Array.from(span.classList).some(predicate)) {
+        const parent = span.parentNode!
+        while (span.firstChild) parent.insertBefore(span.firstChild, span)
+        parent.removeChild(span)
+      }
+    }
+  }
+
+  function wrapSelectionWithClass(className: string, stripPredicate?: (cls: string) => boolean) {
     restoreSelection()
     const range = getRange()
     if (!range || isCollapsed()) return
 
     const fragment = range.extractContents()
+
+    if (stripPredicate) {
+      stripSpansFromFragment(fragment, stripPredicate)
+    }
+
     const span = document.createElement('span')
     span.className = className
     span.appendChild(fragment)
@@ -104,11 +120,8 @@ export function useFormatting(savedRange: Ref<Range | null>) {
   }
 
   function applyFontSize(sizeKey: string) {
-    // Remove existing font-size classes first
-    const existing = findAncestorWithClass(`text-${sizeKey}`)
-    if (existing) return // already applied, do nothing
-    // Remove other text-size classes from selection span
-    wrapSelectionWithClass(`text-${sizeKey}`)
+    const fontSizeClasses = new Set(Object.keys(tailwindMap.fontSizes).map(k => `text-${k}`))
+    wrapSelectionWithClass(`text-${sizeKey}`, cls => fontSizeClasses.has(cls))
   }
 
   function applyFontWeight(weightKey: string) {
@@ -116,8 +129,11 @@ export function useFormatting(savedRange: Ref<Range | null>) {
   }
 
   function applyColor(colorClass: string) {
-    // Remove any existing color class from the selection before applying new
-    wrapSelectionWithClass(colorClass)
+    const fontSizeClasses = new Set(Object.keys(tailwindMap.fontSizes).map(k => `text-${k}`))
+    const alignClasses = new Set(['text-left', 'text-center', 'text-right', 'text-justify'])
+    const isColorClass = (cls: string) =>
+      cls.startsWith('text-') && !fontSizeClasses.has(cls) && !alignClasses.has(cls)
+    wrapSelectionWithClass(colorClass, isColorClass)
   }
 
   /**
