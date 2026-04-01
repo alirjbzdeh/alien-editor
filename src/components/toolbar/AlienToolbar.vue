@@ -50,9 +50,7 @@ function setHeadingLevel(level: HeadingLevel) {
   if (block?.type === 'heading') {
     editor.updateBlock(activeId, { level } as any)
   } else {
-    // Convert current block to heading or insert new heading
-    editor.pushSnapshot()
-    editor.updateBlock(activeId, { type: 'heading', level, html: (block as any)?.html ?? '' } as any)
+    editor.replaceBlock(activeId, 'heading', { level, html: (block as any)?.html ?? '' } as any)
   }
   showHeadingMenu.value = false
 }

@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { inject } from 'vue'
-import type { Block, EditorContext } from '@/types'
+import type { Block, EditorContext, DragState } from '@/types'
 
-const props = defineProps<{ block: Block }>()
+const props = defineProps<{
+  block: Block
+  dragState: DragState
+  onDragStart: (blockId: string, event: DragEvent) => void
+  onDragOver: (blockId: string, event: DragEvent) => void
+  onDragLeave: () => void
+  onDrop: (targetId: string) => void
+  onDragEnd: () => void
+}>()
 
 const editor = inject<EditorContext>('alienEditor')!
 </script>
@@ -11,16 +19,16 @@ const editor = inject<EditorContext>('alienEditor')!
   <div
     class="ae-block-wrapper group relative"
     :class="{
-      'ae-block--drag-over': editor.dragState.value.overId === block.id,
-      'ae-block--dragging': editor.dragState.value.draggedId === block.id,
+      'ae-block--drag-over': props.dragState.overId === block.id,
+      'ae-block--dragging': props.dragState.draggedId === block.id,
     }"
-    @dragover="editor.onDragOver(block.id, $event)"
-    @dragleave="editor.onDragLeave()"
-    @drop.prevent="editor.onDrop(block.id)"
+    @dragover="props.onDragOver(block.id, $event)"
+    @dragleave="props.onDragLeave()"
+    @drop.prevent="props.onDrop(block.id)"
   >
     <!-- Drop indicator line -->
     <div
-      v-if="editor.dragState.value.overId === block.id"
+      v-if="props.dragState.overId === block.id"
       class="ae-drop-indicator absolute top-0 left-0 right-0 h-0.5 bg-blue-500 z-10 pointer-events-none"
     />
 
@@ -31,8 +39,8 @@ const editor = inject<EditorContext>('alienEditor')!
         draggable="true"
         title="Drag to reorder"
         @mousedown.stop
-        @dragstart="editor.onDragStart(block.id, $event)"
-        @dragend="editor.onDragEnd()"
+        @dragstart="props.onDragStart(block.id, $event)"
+        @dragend="props.onDragEnd()"
       >
         <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor">
           <circle cx="3" cy="3" r="1.5"/>

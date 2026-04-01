@@ -73,5 +73,14 @@ export function useBlocks(blocks: Ref<Block[]>, pushSnapshot: () => void) {
     if (block) Object.assign(block, patch)
   }
 
-  return { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock }
+  function replaceBlock(id: string, type: BlockType, overrides: Partial<Block> = {}): string {
+    const idx = blocks.value.findIndex(b => b.id === id)
+    if (idx === -1) return id
+    pushSnapshot()
+    const newBlock = createDefaultBlock(type, overrides)
+    blocks.value.splice(idx, 1, newBlock)
+    return newBlock.id
+  }
+
+  return { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock, replaceBlock }
 }

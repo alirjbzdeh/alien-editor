@@ -146,6 +146,7 @@ export interface EditorContext {
   canUndo: import('vue').ComputedRef<boolean>
   canRedo: import('vue').ComputedRef<boolean>
   updateBlock: (id: string, patch: Partial<Block>) => void
+  replaceBlock: (id: string, type: BlockType, overrides?: Partial<Block>) => string
   addBlockAfter: (afterId: string, type: BlockType, overrides?: Partial<Block>) => string
   addBlockAt: (index: number, type: BlockType, overrides?: Partial<Block>) => string
   removeBlock: (id: string) => void
@@ -157,10 +158,4 @@ export interface EditorContext {
   showImageUrlModal: import('vue').Ref<boolean>
   linkModalCallback: import('vue').Ref<((href: string, text: string) => void) | null>
   imageUrlCallback: import('vue').Ref<((url: string) => void) | null>
-  dragState: import('vue').Ref<DragState>
-  onDragStart: (blockId: string, event: DragEvent) => void
-  onDragOver: (blockId: string, event: DragEvent) => void
-  onDragLeave: () => void
-  onDrop: (targetId: string) => void
-  onDragEnd: () => void
 }

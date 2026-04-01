@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { inject } from 'vue'
-import type { EditorContext } from '@/types'
+import type { EditorContext, DragState } from '@/types'
 import BlockWrapper from './BlockWrapper.vue'
 import TextBlock from './TextBlock.vue'
 import HeadingBlock from './HeadingBlock.vue'
@@ -12,6 +12,15 @@ import DividerBlock from './DividerBlock.vue'
 import ButtonBlock from './ButtonBlock.vue'
 import ModuleBlock from './ModuleBlock.vue'
 
+const props = defineProps<{
+  dragState: DragState
+  onDragStart: (blockId: string, event: DragEvent) => void
+  onDragOver: (blockId: string, event: DragEvent) => void
+  onDragLeave: () => void
+  onDrop: (targetId: string) => void
+  onDragEnd: () => void
+}>()
+
 const editor = inject<EditorContext>('alienEditor')!
 </script>
 
@@ -21,6 +30,12 @@ const editor = inject<EditorContext>('alienEditor')!
       v-for="block in editor.blocks.value"
       :key="block.id"
       :block="block"
+      :drag-state="props.dragState"
+      :on-drag-start="props.onDragStart"
+      :on-drag-over="props.onDragOver"
+      :on-drag-leave="props.onDragLeave"
+      :on-drop="props.onDrop"
+      :on-drag-end="props.onDragEnd"
     >
       <TextBlock
         v-if="block.type === 'paragraph' || block.type === 'blockquote'"

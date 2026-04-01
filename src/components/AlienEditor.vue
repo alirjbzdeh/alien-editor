@@ -38,7 +38,7 @@ const emit = defineEmits<{
 const { blocks, mode, activeBlockId, savedRange } = useEditorState()
 const { pushSnapshot, undo, redo, canUndo, canRedo } = useHistory(blocks)
 const { saveSelection, restoreSelection } = useSelection(savedRange)
-const { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock } = useBlocks(blocks, pushSnapshot)
+const { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock, replaceBlock } = useBlocks(blocks, pushSnapshot)
 const { dragState, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd } = useDragDrop(blocks, moveBlock)
 const { serialize } = useSerializer()
 const { parse } = useParser()
@@ -144,6 +144,7 @@ const editorContext: EditorContext = {
   canUndo,
   canRedo,
   updateBlock,
+  replaceBlock,
   addBlockAfter,
   addBlockAt,
   removeBlock,
@@ -155,12 +156,6 @@ const editorContext: EditorContext = {
   showImageUrlModal,
   linkModalCallback,
   imageUrlCallback,
-  dragState,
-  onDragStart,
-  onDragOver,
-  onDragLeave,
-  onDrop,
-  onDragEnd,
 }
 
 provide('alienEditor', editorContext)
@@ -176,7 +171,14 @@ provide('alienEditor', editorContext)
       v-if="mode === 'edit'"
       class="ae-edit-area min-h-[300px] px-8 py-6"
     >
-      <BlockList />
+      <BlockList
+        :drag-state="dragState"
+        :on-drag-start="onDragStart"
+        :on-drag-over="onDragOver"
+        :on-drag-leave="onDragLeave"
+        :on-drop="onDrop"
+        :on-drag-end="onDragEnd"
+      />
     </div>
 
     <!-- Code mode: editable raw HTML -->
