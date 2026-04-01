@@ -123,7 +123,6 @@ export type EditorMode = 'edit' | 'code' | 'preview'
 
 export interface HistorySnapshot {
   blocks: Block[]
-  timestamp: number
 }
 
 export interface DragState {
@@ -144,8 +143,8 @@ export interface EditorContext {
   pushSnapshot: () => void
   undo: () => void
   redo: () => void
-  canUndo: () => boolean
-  canRedo: () => boolean
+  canUndo: import('vue').ComputedRef<boolean>
+  canRedo: import('vue').ComputedRef<boolean>
   updateBlock: (id: string, patch: Partial<Block>) => void
   addBlockAfter: (afterId: string, type: BlockType, overrides?: Partial<Block>) => string
   addBlockAt: (index: number, type: BlockType, overrides?: Partial<Block>) => string

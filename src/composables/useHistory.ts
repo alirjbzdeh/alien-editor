@@ -1,4 +1,4 @@
-import { ref, type Ref } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import type { Block, HistorySnapshot } from '@/types'
 
 const MAX_HISTORY = 100
@@ -10,7 +10,6 @@ export function useHistory(blocks: Ref<Block[]>) {
   function snapshot(): HistorySnapshot {
     return {
       blocks: JSON.parse(JSON.stringify(blocks.value)),
-      timestamp: Date.now(),
     }
   }
 
@@ -34,13 +33,8 @@ export function useHistory(blocks: Ref<Block[]>) {
     blocks.value = future.value.pop()!.blocks
   }
 
-  function canUndo() {
-    return past.value.length > 0
-  }
-
-  function canRedo() {
-    return future.value.length > 0
-  }
+  const canUndo = computed(() => past.value.length > 0)
+  const canRedo = computed(() => future.value.length > 0)
 
   return { pushSnapshot, undo, redo, canUndo, canRedo }
 }

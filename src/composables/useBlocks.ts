@@ -73,7 +73,5 @@ export function useBlocks(blocks: Ref<Block[]>, pushSnapshot: () => void) {
     if (block) Object.assign(block, patch)
   }
 
-  return { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock, createDefaultBlock }
+  return { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock }
 }
-
-export { createDefaultBlock, generateId }

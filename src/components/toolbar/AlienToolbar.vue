@@ -326,13 +326,13 @@ function closeDropdowns() {
       <div class="ae-divider-v w-px h-5 bg-gray-200 mx-1" />
 
       <!-- Undo / Redo -->
-      <ToolbarButton title="Undo (Ctrl+Z)" :disabled="!editor.canUndo()" @action="editor.undo()">
+      <ToolbarButton title="Undo (Ctrl+Z)" :disabled="!editor.canUndo.value" @action="editor.undo()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="9 14 4 9 9 4"/>
           <path d="M20 20v-7a4 4 0 00-4-4H4"/>
         </svg>
       </ToolbarButton>
-      <ToolbarButton title="Redo (Ctrl+Y)" :disabled="!editor.canRedo()" @action="editor.redo()">
+      <ToolbarButton title="Redo (Ctrl+Y)" :disabled="!editor.canRedo.value" @action="editor.redo()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="15 14 20 9 15 4"/>
           <path d="M4 20v-7a4 4 0 014-4h12"/>

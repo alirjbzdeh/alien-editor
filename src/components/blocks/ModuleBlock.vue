@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, inject } from 'vue'
 import type { ModuleBlock, EditorContext } from '@/types'
+import { isAtStart, isAtEnd } from '@/utils/selection'
 
 const props = defineProps<{ block: ModuleBlock }>()
 
@@ -36,6 +37,20 @@ function onInput() {
   }, 500)
 }
 
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Backspace' && el.value) {
+    if (el.value.innerHTML === '' || isAtStart(el.value)) {
+      e.preventDefault()
+    }
+  }
+
+  if (e.key === 'Delete' && el.value) {
+    if (el.value.innerHTML === '' || isAtEnd(el.value)) {
+      e.preventDefault()
+    }
+  }
+}
+
 function onFocus() {
   editor.activeBlockId.value = props.block.id
 }
@@ -48,6 +63,7 @@ function onFocus() {
     contenteditable="true"
     spellcheck="true"
     @input="onInput"
+    @keydown="onKeydown"
     @focus="onFocus"
     @mousedown="editor.saveSelection()"
     @keyup="editor.saveSelection()"

@@ -89,6 +89,7 @@ function initBlocks(html: string) {
 onMounted(() => {
   initBlocks(props.modelValue || '')
   isInitialized = true
+  document.addEventListener('keydown', onKeydown)
 })
 
 // ─── Emit on change ───────────────────────────────────────────────────────────
@@ -126,7 +127,6 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => document.addEventListener('keydown', onKeydown))
 onUnmounted(() => document.removeEventListener('keydown', onKeydown))
 
 // ─── Provide editor context to all children ───────────────────────────────────
