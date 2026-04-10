@@ -2,12 +2,13 @@
 import { ref, onMounted, watch, inject, nextTick } from 'vue'
 import type { ParagraphBlock, BlockquoteBlock, EditorContext } from '@/types'
 import { isAtStart, isAtEnd } from '@/utils/selection'
+import { useTypingSnapshot } from '@/composables/useTypingSnapshot'
 
 const props = defineProps<{ block: ParagraphBlock | BlockquoteBlock }>()
 
 const editor = inject<EditorContext>('alienEditor')!
 const el = ref<HTMLElement | null>(null)
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
+const { onTypingStart } = useTypingSnapshot(editor.pushSnapshot)
 let isUpdatingFromModel = false
 
 onMounted(() => {
@@ -28,15 +29,10 @@ watch(
 
 function onInput() {
   if (!el.value) return
+  onTypingStart()
   isUpdatingFromModel = true
   editor.updateBlock(props.block.id, { html: el.value.innerHTML } as any)
   isUpdatingFromModel = false
-
-  // Debounced snapshot for typing
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    editor.pushSnapshot()
-  }, 500)
 }
 
 function onKeydown(e: KeyboardEvent) {

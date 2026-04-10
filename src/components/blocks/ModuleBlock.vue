@@ -2,12 +2,13 @@
 import { ref, onMounted, watch, inject } from 'vue'
 import type { ModuleBlock, EditorContext } from '@/types'
 import { isAtStart, isAtEnd } from '@/utils/selection'
+import { useTypingSnapshot } from '@/composables/useTypingSnapshot'
 
 const props = defineProps<{ block: ModuleBlock }>()
 
 const editor = inject<EditorContext>('alienEditor')!
 const el = ref<HTMLElement | null>(null)
-let debounceTimer: ReturnType<typeof setTimeout> | null = null
+const { onTypingStart } = useTypingSnapshot(editor.pushSnapshot)
 let isUpdatingFromModel = false
 
 onMounted(() => {
@@ -27,14 +28,10 @@ watch(
 
 function onInput() {
   if (!el.value) return
+  onTypingStart()
   isUpdatingFromModel = true
   editor.updateBlock(props.block.id, { html: el.value.innerHTML } as any)
   isUpdatingFromModel = false
-
-  if (debounceTimer) clearTimeout(debounceTimer)
-  debounceTimer = setTimeout(() => {
-    editor.pushSnapshot()
-  }, 500)
 }
 
 function onKeydown(e: KeyboardEvent) {

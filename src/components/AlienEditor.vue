@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provide, watch, ref, onMounted, onUnmounted, computed } from 'vue'
+import { provide, watch, ref, onMounted, computed } from 'vue'
 import type { ColorOption, ModuleOption, EditorContext } from '@/types'
 import { useEditorState } from '@/composables/useEditorState'
 import { useHistory } from '@/composables/useHistory'
@@ -8,6 +8,8 @@ import { useBlocks } from '@/composables/useBlocks'
 import { useDragDrop } from '@/composables/useDragDrop'
 import { useSerializer } from '@/composables/useSerializer'
 import { useParser } from '@/composables/useParser'
+import { useCodeMode } from '@/composables/useCodeMode'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 import AlienToolbar from './toolbar/AlienToolbar.vue'
 import BlockList from './blocks/BlockList.vue'
 import LinkModal from './modals/LinkModal.vue'
@@ -20,12 +22,14 @@ const props = withDefaults(
     placeholder?: string
     colors?: ColorOption[]
     modules?: ModuleOption[]
+    rtl?: boolean
   }>(),
   {
     modelValue: '',
     placeholder: 'Start writing...',
     colors: () => [],
     modules: () => [],
+    rtl: false,
   },
 )
 
@@ -40,8 +44,16 @@ const { pushSnapshot, undo, redo, canUndo, canRedo } = useHistory(blocks)
 const { saveSelection, restoreSelection } = useSelection(savedRange)
 const { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock, replaceBlock } = useBlocks(blocks, pushSnapshot)
 const { dragState, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd } = useDragDrop(blocks, moveBlock)
-const { serialize } = useSerializer()
+const { serialize, serializeBlock } = useSerializer()
 const { parse } = useParser()
+
+// ─── Serialized HTML output ───────────────────────────────────────────────────
+const serializedHtml = computed(() => serialize(blocks.value))
+
+// ─── Code mode ────────────────────────────────────────────────────────────────
+const { codeEditorValue, codeTextareaRef, onCodeInput } = useCodeMode(
+  mode, blocks, activeBlockId, serializedHtml, serializeBlock, parse, pushSnapshot,
+)
 
 // ─── Modal state ──────────────────────────────────────────────────────────────
 const showLinkModal = ref(false)
@@ -49,88 +61,28 @@ const showImageUrlModal = ref(false)
 const linkModalCallback = ref<((href: string, text: string) => void) | null>(null)
 const imageUrlCallback = ref<((url: string) => void) | null>(null)
 
-// ─── Serialized HTML output ───────────────────────────────────────────────────
-const serializedHtml = computed(() => serialize(blocks.value))
-
-// ─── Code mode editable state ─────────────────────────────────────────────────
-const codeEditorValue = ref('')
-let codeUpdateTimer: ReturnType<typeof setTimeout> | null = null
-
-watch(mode, (newMode, oldMode) => {
-  if (newMode === 'code') {
-    codeEditorValue.value = serializedHtml.value
-  } else if (oldMode === 'code') {
-    if (codeUpdateTimer) {
-      clearTimeout(codeUpdateTimer)
-      codeUpdateTimer = null
-    }
-    blocks.value = parse(codeEditorValue.value)
-  }
-})
-
-function onCodeInput(e: Event) {
-  const html = (e.target as HTMLTextAreaElement).value
-  codeEditorValue.value = html
-  if (codeUpdateTimer) clearTimeout(codeUpdateTimer)
-  codeUpdateTimer = setTimeout(() => {
-    pushSnapshot()
-    blocks.value = parse(html)
-  }, 300)
-}
+// ─── Keyboard shortcuts ───────────────────────────────────────────────────────
+useKeyboardShortcuts(undo, redo)
 
 // ─── Initialize blocks from modelValue ───────────────────────────────────────
 let isInitialized = false
 
-function initBlocks(html: string) {
-  const parsed = parse(html)
-  blocks.value = parsed
-}
-
 onMounted(() => {
-  initBlocks(props.modelValue || '')
+  blocks.value = parse(props.modelValue || '')
   isInitialized = true
-  document.addEventListener('keydown', onKeydown)
 })
 
-// ─── Emit on change ───────────────────────────────────────────────────────────
-watch(
-  serializedHtml,
-  (newHtml) => {
-    if (isInitialized) {
-      emit('update:modelValue', newHtml)
-    }
-  },
-)
+watch(serializedHtml, (newHtml) => {
+  if (isInitialized) emit('update:modelValue', newHtml)
+})
 
-// ─── Sync external modelValue changes ────────────────────────────────────────
-watch(
-  () => props.modelValue,
-  (newVal) => {
-    if (!isInitialized) return
-    const currentHtml = serializedHtml.value
-    // Only re-parse if the external value is truly different
-    if (newVal !== currentHtml) {
-      initBlocks(newVal || '')
-    }
-  },
-)
-
-// ─── Keyboard shortcuts ───────────────────────────────────────────────────────
-function onKeydown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
-    e.preventDefault()
-    undo()
-  }
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
-    e.preventDefault()
-    redo()
-  }
-}
-
-onUnmounted(() => document.removeEventListener('keydown', onKeydown))
+watch(() => props.modelValue, (newVal) => {
+  if (!isInitialized) return
+  if (newVal !== serializedHtml.value) blocks.value = parse(newVal || '')
+})
 
 // ─── Provide editor context to all children ───────────────────────────────────
-const editorContext: EditorContext = {
+provide('alienEditor', {
   blocks,
   mode,
   activeBlockId,
@@ -156,13 +108,11 @@ const editorContext: EditorContext = {
   showImageUrlModal,
   linkModalCallback,
   imageUrlCallback,
-}
-
-provide('alienEditor', editorContext)
+} satisfies EditorContext)
 </script>
 
 <template>
-  <div class="alien-editor ae-root border border-gray-200 rounded-xl bg-white shadow-sm w-full">
+  <div class="alien-editor ae-root border border-gray-200 rounded-xl bg-white shadow-sm w-full" :dir="props.rtl ? 'rtl' : 'ltr'">
     <!-- Toolbar -->
     <AlienToolbar />
 
@@ -187,6 +137,7 @@ provide('alienEditor', editorContext)
       class="ae-code-mode bg-gray-950 min-h-[300px] p-6"
     >
       <textarea
+        ref="codeTextareaRef"
         class="w-full bg-transparent text-green-400 font-mono text-sm leading-relaxed resize-y outline-none min-h-[276px] whitespace-pre"
         :value="codeEditorValue"
         @input="onCodeInput"
