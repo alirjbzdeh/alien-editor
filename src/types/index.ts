@@ -1,5 +1,10 @@
 // ─── Prop types ─────────────────────────────────────────────────────────────
 
+export interface MediaProvider {
+  browse: () => Promise<string>
+  upload?: (file: File) => Promise<string>
+}
+
 export interface ColorOption {
   title: string
   key: string
@@ -154,6 +159,7 @@ export interface EditorContext {
   saveSelection: () => void
   restoreSelection: () => void
   onUpload: (file: File) => void
+  mediaProvider?: MediaProvider
   showLinkModal: import('vue').Ref<boolean>
   showImageUrlModal: import('vue').Ref<boolean>
   linkModalCallback: import('vue').Ref<((href: string, text: string) => void) | null>

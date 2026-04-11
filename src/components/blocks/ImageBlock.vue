@@ -8,18 +8,35 @@ const editor = inject<EditorContext>('alienEditor')!
 const urlInput = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
 const showUrlInput = ref(false)
+const mediaIsLoading = ref(false)
+const mediaHasError = ref(false)
 
-function onFileChange(e: Event) {
+async function onFileChange(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
   if (!file) return
 
-  // Emit upload event so parent can handle actual upload
-  editor.onUpload(file)
+  const uploadFn = editor.mediaProvider?.upload
 
-  // Show local preview immediately
-  const localUrl = URL.createObjectURL(file)
-  editor.updateBlock(props.block.id, { src: localUrl, alt: file.name } as any)
-  editor.pushSnapshot()
+  if (uploadFn) {
+    mediaIsLoading.value = true
+    mediaHasError.value = false
+    try {
+      const url = await uploadFn(file)
+      editor.updateBlock(props.block.id, { src: url, alt: file.name } as any)
+      editor.pushSnapshot()
+    } catch {
+      mediaHasError.value = true
+      setTimeout(() => { mediaHasError.value = false }, 2000)
+    } finally {
+      mediaIsLoading.value = false
+    }
+  } else {
+    // Default: emit @upload and show local preview
+    editor.onUpload(file)
+    const localUrl = URL.createObjectURL(file)
+    editor.updateBlock(props.block.id, { src: localUrl, alt: file.name } as any)
+    editor.pushSnapshot()
+  }
 }
 
 function onUrlSubmit() {
@@ -87,10 +104,17 @@ function removeImage() {
 
       <div class="flex gap-2">
         <button
-          class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          @mousedown.prevent="fileInput?.click()"
+          class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded transition-colors inline-flex items-center gap-1.5"
+          :class="mediaIsLoading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-blue-700'"
+          :disabled="mediaIsLoading"
+          @mousedown.prevent="!mediaIsLoading && fileInput?.click()"
         >
-          Upload file
+          <svg v-if="mediaIsLoading" class="animate-spin w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+          <span v-if="mediaIsLoading">Uploading...</span>
+          <span v-else-if="mediaHasError" class="text-red-200">Upload failed</span>
+          <span v-else>Upload file</span>
         </button>
         <button
           class="text-sm px-3 py-1.5 border border-gray-300 rounded hover:bg-gray-100 transition-colors"

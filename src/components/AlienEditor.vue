@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { provide, watch, ref, onMounted, computed } from 'vue'
-import type { ColorOption, ModuleOption, EditorContext } from '@/types'
+import type { ColorOption, ModuleOption, EditorContext, MediaProvider } from '@/types'
 import { useEditorState } from '@/composables/useEditorState'
 import { useHistory } from '@/composables/useHistory'
 import { useSelection } from '@/composables/useSelection'
@@ -22,6 +22,7 @@ const props = withDefaults(
     placeholder?: string
     colors?: ColorOption[]
     modules?: ModuleOption[]
+    mediaProvider?: MediaProvider
     rtl?: boolean
   }>(),
   {
@@ -29,6 +30,7 @@ const props = withDefaults(
     placeholder: 'Start writing...',
     colors: () => [],
     modules: () => [],
+    mediaProvider: undefined,
     rtl: false,
   },
 )
@@ -104,6 +106,7 @@ provide('alienEditor', {
   saveSelection,
   restoreSelection,
   onUpload: (file: File) => emit('upload', file),
+  mediaProvider: props.mediaProvider,
   showLinkModal,
   showImageUrlModal,
   linkModalCallback,
