@@ -35,7 +35,7 @@ const modules = [
 const mediaProvider: MediaProvider = {
   async browse() {
     // open your gallery UI and return the selected image URL
-    return 'https://example.com/image.jpg'
+    return ['https://example.com/image.jpg']
   },
   async upload(file: File) {
     // upload file to your server and return the URL
@@ -109,7 +109,7 @@ The `mediaProvider` prop connects Alien Editor to an external gallery or media s
 
 ```ts
 interface MediaProvider {
-  browse: () => Promise<string>          // opens external gallery, returns selected media URL
+  browse: () => Promise<string[]>           // opens external gallery, returns selected media URLs
   upload?: (file: File) => Promise<string>  // optional: uploads file, returns URL
 }
 ```
@@ -142,10 +142,10 @@ const html = ref('')
 
 const mediaProvider: MediaProvider = {
   async browse() {
-    // Open your own gallery UI and return the selected URL
+    // Open your own gallery UI and return the selected URLs
     return new Promise((resolve, reject) => {
       openMyGallery({
-        onSelect: (url: string) => resolve(url),
+        onSelect: (urls: string[]) => resolve(urls),
         onCancel: () => reject(new Error('Cancelled')),
       })
     })

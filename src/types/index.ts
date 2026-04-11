@@ -1,7 +1,7 @@
 // ─── Prop types ─────────────────────────────────────────────────────────────
 
 export interface MediaProvider {
-  browse: () => Promise<string>
+  browse: () => Promise<string[]>
   upload?: (file: File) => Promise<string>
 }
 

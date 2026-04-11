@@ -87,10 +87,20 @@ async function insertImage() {
     mediaIsLoading.value = true
     mediaHasError.value = false
     try {
-      const url = await mediaProvider.browse()
+      const urls = await mediaProvider.browse()
+      const validUrls = urls.filter(Boolean)
+      if (!validUrls.length) return
+
       const activeId = editor.activeBlockId.value
-      if (activeId) editor.addBlockAfter(activeId, 'image', { src: url, alt: '' } as any)
-      else editor.addBlockAt(editor.blocks.value.length, 'image', { src: url, alt: '' } as any)
+      let afterId = activeId ?? editor.blocks.value[editor.blocks.value.length - 1]?.id
+
+      for (const url of validUrls) {
+        if (afterId) {
+          afterId = editor.addBlockAfter(afterId, 'image', { src: url, alt: '' } as any)
+        } else {
+          afterId = editor.addBlockAt(editor.blocks.value.length, 'image', { src: url, alt: '' } as any)
+        }
+      }
     } catch {
       mediaHasError.value = true
       setTimeout(() => { mediaHasError.value = false }, 2000)

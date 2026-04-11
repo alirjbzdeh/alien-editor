@@ -12,8 +12,8 @@ const mediaIsLoading = ref(false)
 const mediaHasError = ref(false)
 
 async function onFileChange(e: Event) {
-  const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
+  const files = Array.from((e.target as HTMLInputElement).files ?? [])
+  if (!files.length) return
 
   const uploadFn = editor.mediaProvider?.upload
 
@@ -21,9 +21,13 @@ async function onFileChange(e: Event) {
     mediaIsLoading.value = true
     mediaHasError.value = false
     try {
-      const url = await uploadFn(file)
-      editor.updateBlock(props.block.id, { src: url, alt: file.name } as any)
+      const urls = await Promise.all(files.map(f => uploadFn(f)))
       editor.pushSnapshot()
+      editor.updateBlock(props.block.id, { src: urls[0], alt: files[0].name } as any)
+      let afterId = props.block.id
+      for (let i = 1; i < urls.length; i++) {
+        afterId = editor.addBlockAfter(afterId, 'image', { src: urls[i], alt: files[i].name } as any)
+      }
     } catch {
       mediaHasError.value = true
       setTimeout(() => { mediaHasError.value = false }, 2000)
@@ -31,11 +35,15 @@ async function onFileChange(e: Event) {
       mediaIsLoading.value = false
     }
   } else {
-    // Default: emit @upload and show local preview
-    editor.onUpload(file)
-    const localUrl = URL.createObjectURL(file)
-    editor.updateBlock(props.block.id, { src: localUrl, alt: file.name } as any)
+    // Default: emit @upload per file and show local previews
     editor.pushSnapshot()
+    editor.updateBlock(props.block.id, { src: URL.createObjectURL(files[0]), alt: files[0].name } as any)
+    editor.onUpload(files[0])
+    let afterId = props.block.id
+    for (let i = 1; i < files.length; i++) {
+      afterId = editor.addBlockAfter(afterId, 'image', { src: URL.createObjectURL(files[i]), alt: files[i].name } as any)
+      editor.onUpload(files[i])
+    }
   }
 }
 
@@ -60,9 +68,34 @@ function onAltChange(e: Event) {
   editor.updateBlock(props.block.id, { alt: (e.target as HTMLInputElement).value } as any)
 }
 
-function removeImage() {
-  editor.pushSnapshot()
-  editor.updateBlock(props.block.id, { src: '' } as any)
+async function replaceImage() {
+  const mediaProvider = editor.mediaProvider
+
+  if (mediaProvider?.browse) {
+    mediaIsLoading.value = true
+    mediaHasError.value = false
+    try {
+      const urls = await mediaProvider.browse()
+      const validUrls = urls.filter(Boolean)
+      if (!validUrls.length) return
+      editor.pushSnapshot()
+      editor.updateBlock(props.block.id, { src: validUrls[0] } as any)
+      let afterId = props.block.id
+      for (let i = 1; i < validUrls.length; i++) {
+        afterId = editor.addBlockAfter(afterId, 'image', { src: validUrls[i], alt: '' } as any)
+      }
+    } catch {
+      mediaHasError.value = true
+      setTimeout(() => { mediaHasError.value = false }, 2000)
+    } finally {
+      mediaIsLoading.value = false
+    }
+  } else if (mediaProvider?.upload) {
+    fileInput.value?.click()
+  } else {
+    editor.pushSnapshot()
+    editor.updateBlock(props.block.id, { src: '' } as any)
+  }
 }
 </script>
 
@@ -78,10 +111,17 @@ function removeImage() {
       />
       <div class="absolute inset-0 bg-black/0 group-hover/img:bg-black/20 transition-colors rounded flex items-center justify-center gap-2 opacity-0 group-hover/img:opacity-100">
         <button
-          class="bg-white text-gray-700 text-xs px-2 py-1 rounded shadow hover:bg-gray-100"
-          @mousedown.prevent="removeImage"
+          class="text-xs px-2 py-1 rounded shadow transition-colors inline-flex items-center gap-1"
+          :class="mediaIsLoading ? 'bg-white text-gray-400 cursor-not-allowed' : mediaHasError ? 'bg-white text-red-500' : 'bg-white text-gray-700 hover:bg-gray-100'"
+          :disabled="mediaIsLoading"
+          @mousedown.prevent="replaceImage"
         >
-          Replace
+          <svg v-if="mediaIsLoading" class="animate-spin w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12a9 9 0 11-6.219-8.56"/>
+          </svg>
+          <span v-if="mediaIsLoading">...</span>
+          <span v-else-if="mediaHasError">Failed</span>
+          <span v-else>Replace</span>
         </button>
       </div>
       <!-- Alt text input -->
@@ -145,6 +185,7 @@ function removeImage() {
         ref="fileInput"
         type="file"
         accept="image/*"
+        multiple
         class="hidden"
         @change="onFileChange"
       />
