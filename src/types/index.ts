@@ -162,6 +162,8 @@ export interface EditorContext {
   mediaProvider?: MediaProvider
   showLinkModal: import('vue').Ref<boolean>
   showImageUrlModal: import('vue').Ref<boolean>
+  showMediaInsertModal: import('vue').Ref<boolean>
   linkModalCallback: import('vue').Ref<((href: string, text: string) => void) | null>
   imageUrlCallback: import('vue').Ref<((url: string) => void) | null>
+  mediaInsertCallback: import('vue').Ref<((html: string) => void) | null>
 }

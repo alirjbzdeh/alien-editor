@@ -14,6 +14,7 @@ import AlienToolbar from './toolbar/AlienToolbar.vue'
 import BlockList from './blocks/BlockList.vue'
 import LinkModal from './modals/LinkModal.vue'
 import ImageUrlModal from './modals/ImageUrlModal.vue'
+import MediaInsertModal from './modals/MediaInsertModal.vue'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 const props = withDefaults(
@@ -60,8 +61,10 @@ const { codeEditorValue, codeTextareaRef, onCodeInput } = useCodeMode(
 // ─── Modal state ──────────────────────────────────────────────────────────────
 const showLinkModal = ref(false)
 const showImageUrlModal = ref(false)
+const showMediaInsertModal = ref(false)
 const linkModalCallback = ref<((href: string, text: string) => void) | null>(null)
 const imageUrlCallback = ref<((url: string) => void) | null>(null)
+const mediaInsertCallback = ref<((html: string) => void) | null>(null)
 
 // ─── Keyboard shortcuts ───────────────────────────────────────────────────────
 useKeyboardShortcuts(undo, redo)
@@ -109,8 +112,10 @@ provide('alienEditor', {
   mediaProvider: props.mediaProvider,
   showLinkModal,
   showImageUrlModal,
+  showMediaInsertModal,
   linkModalCallback,
   imageUrlCallback,
+  mediaInsertCallback,
 } satisfies EditorContext)
 </script>
 
@@ -163,6 +168,7 @@ provide('alienEditor', {
     <!-- Modals -->
     <LinkModal />
     <ImageUrlModal />
+    <MediaInsertModal />
   </div>
 </template>
 
