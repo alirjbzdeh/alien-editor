@@ -166,4 +166,5 @@ export interface EditorContext {
   linkModalCallback: import('vue').Ref<((href: string, text: string) => void) | null>
   imageUrlCallback: import('vue').Ref<((url: string) => void) | null>
   mediaInsertCallback: import('vue').Ref<((html: string) => void) | null>
+  openSearch: () => void
 }

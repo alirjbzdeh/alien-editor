@@ -10,7 +10,9 @@ import { useSerializer } from '@/composables/useSerializer'
 import { useParser } from '@/composables/useParser'
 import { useCodeMode } from '@/composables/useCodeMode'
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
+import { useSearch } from '@/composables/useSearch'
 import AlienToolbar from './toolbar/AlienToolbar.vue'
+import SearchBar from './toolbar/SearchBar.vue'
 import BlockList from './blocks/BlockList.vue'
 import LinkModal from './modals/LinkModal.vue'
 import ImageUrlModal from './modals/ImageUrlModal.vue'
@@ -58,6 +60,23 @@ const { codeEditorValue, codeTextareaRef, onCodeInput } = useCodeMode(
   mode, blocks, activeBlockId, serializedHtml, serializeBlock, parse, pushSnapshot,
 )
 
+// ─── Search ───────────────────────────────────────────────────────────────────
+const searchBarRef = ref<InstanceType<typeof SearchBar> | null>(null)
+const {
+  isSearchOpen,
+  searchQuery,
+  currentMatchIndex,
+  matchCount,
+  openSearch,
+  closeSearch,
+  nextMatch,
+  prevMatch,
+} = useSearch(blocks, mode, codeEditorValue, codeTextareaRef)
+
+watch(isSearchOpen, (open) => {
+  if (open) searchBarRef.value?.focusInput()
+})
+
 // ─── Modal state ──────────────────────────────────────────────────────────────
 const showLinkModal = ref(false)
 const showImageUrlModal = ref(false)
@@ -67,7 +86,7 @@ const imageUrlCallback = ref<((url: string) => void) | null>(null)
 const mediaInsertCallback = ref<((html: string) => void) | null>(null)
 
 // ─── Keyboard shortcuts ───────────────────────────────────────────────────────
-useKeyboardShortcuts(undo, redo)
+useKeyboardShortcuts(undo, redo, openSearch)
 
 // ─── Initialize blocks from modelValue ───────────────────────────────────────
 let isInitialized = false
@@ -116,13 +135,28 @@ provide('alienEditor', {
   linkModalCallback,
   imageUrlCallback,
   mediaInsertCallback,
+  openSearch,
 } satisfies EditorContext)
 </script>
 
 <template>
-  <div class="alien-editor ae-root border border-gray-200 rounded-xl bg-white shadow-sm w-full" :dir="props.rtl ? 'rtl' : 'ltr'">
+  <div class="alien-editor ae-root border border-gray-200 rounded-xl bg-white shadow-sm w-full relative" :dir="props.rtl ? 'rtl' : 'ltr'">
     <!-- Toolbar -->
     <AlienToolbar />
+
+    <!-- Search bar -->
+    <div v-if="isSearchOpen" class="absolute top-12 right-4 z-30">
+      <SearchBar
+        ref="searchBarRef"
+        :search-query="searchQuery"
+        :match-count="matchCount"
+        :current-match-index="currentMatchIndex"
+        @update:search-query="searchQuery = $event"
+        @close="closeSearch"
+        @next="nextMatch"
+        @prev="prevMatch"
+      />
+    </div>
 
     <!-- Edit mode -->
     <div
@@ -173,6 +207,16 @@ provide('alienEditor', {
 </template>
 
 <style>
+/* ─── Search highlights (CSS Custom Highlight API) ────────────────────────── */
+::highlight(ae-search) {
+  background-color: rgba(253, 224, 71, 0.7);
+  color: inherit;
+}
+::highlight(ae-search-current) {
+  background-color: rgba(249, 115, 22, 0.85);
+  color: #fff;
+}
+
 /* ─── Contenteditable placeholder ─────────────────────────────────────────── */
 .ae-text-block:empty::before,
 .ae-heading-content:empty::before {
