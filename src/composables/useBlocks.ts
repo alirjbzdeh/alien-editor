@@ -31,6 +31,17 @@ function createDefaultBlock(type: BlockType, overrides: Partial<Block> = {}): Bl
       return { id, type: 'button', label: 'Button', href: '#', classes: ['inline-block', 'px-4', 'py-2', 'bg-blue-600', 'text-white', 'rounded'], ...overrides } as Block
     case 'module':
       return { id, type: 'module', html: '', ...overrides } as Block
+    case 'table':
+      return {
+        id,
+        type: 'table',
+        rows: [
+          [{ html: '', align: 'left' }, { html: '', align: 'left' }],
+          [{ html: '', align: 'left' }, { html: '', align: 'left' }],
+        ],
+        hasHeader: true,
+        ...overrides,
+      } as Block
     default:
       return { id, type: 'paragraph', html: '', align: 'left', classes: [] } as Block
   }

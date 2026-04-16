@@ -44,7 +44,7 @@ const emit = defineEmits<{
 }>()
 
 // ─── Core state ───────────────────────────────────────────────────────────────
-const { blocks, mode, activeBlockId, savedRange } = useEditorState()
+const { blocks, mode, activeBlockId, savedRange, activeTableCell } = useEditorState()
 const { pushSnapshot, undo, redo, canUndo, canRedo } = useHistory(blocks)
 const { saveSelection, restoreSelection } = useSelection(savedRange)
 const { addBlockAfter, addBlockAt, removeBlock, moveBlock, updateBlock, replaceBlock } = useBlocks(blocks, pushSnapshot)
@@ -136,6 +136,7 @@ provide('alienEditor', {
   imageUrlCallback,
   mediaInsertCallback,
   openSearch,
+  activeTableCell,
 } satisfies EditorContext)
 </script>
 

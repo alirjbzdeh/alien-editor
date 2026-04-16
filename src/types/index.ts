@@ -31,6 +31,7 @@ export type BlockType =
   | 'blockquote'
   | 'ordered-list'
   | 'unordered-list'
+  | 'table'
 
 export type TextAlign = 'left' | 'center' | 'right' | 'justify'
 
@@ -109,6 +110,17 @@ export interface ModuleBlock extends BaseBlock {
   html: string
 }
 
+export interface TableCell {
+  html: string
+  align: TextAlign
+}
+
+export interface TableBlock extends BaseBlock {
+  type: 'table'
+  rows: TableCell[][]
+  hasHeader: boolean
+}
+
 export type Block =
   | ParagraphBlock
   | BlockquoteBlock
@@ -121,6 +133,7 @@ export type Block =
   | DividerBlock
   | ButtonBlock
   | ModuleBlock
+  | TableBlock
 
 // ─── Editor state ────────────────────────────────────────────────────────────
 
@@ -167,4 +180,5 @@ export interface EditorContext {
   imageUrlCallback: import('vue').Ref<((url: string) => void) | null>
   mediaInsertCallback: import('vue').Ref<((html: string) => void) | null>
   openSearch: () => void
+  activeTableCell: import('vue').Ref<{ row: number; col: number } | null>
 }

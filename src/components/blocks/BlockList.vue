@@ -11,6 +11,7 @@ import CodeBlock from './CodeBlock.vue'
 import DividerBlock from './DividerBlock.vue'
 import ButtonBlock from './ButtonBlock.vue'
 import ModuleBlock from './ModuleBlock.vue'
+import TableBlock from './TableBlock.vue'
 
 const props = defineProps<{
   dragState: DragState
@@ -71,6 +72,10 @@ const editor = inject<EditorContext>('alienEditor')!
       />
       <ModuleBlock
         v-else-if="block.type === 'module'"
+        :block="block as any"
+      />
+      <TableBlock
+        v-else-if="block.type === 'table'"
         :block="block as any"
       />
     </BlockWrapper>

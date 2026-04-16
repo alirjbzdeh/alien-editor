@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, inject, computed } from 'vue'
-import type { EditorContext, BlockType, HeadingLevel, TextAlign } from '@/types'
+import type { EditorContext, BlockType, HeadingLevel, TextAlign, TableBlock } from '@/types'
 import { useFormatting } from '@/composables/useFormatting'
 import { tailwindMap } from '@/utils/tailwindMap'
 import ToolbarButton from './ToolbarButton.vue'
@@ -24,6 +24,7 @@ const blockTypes: { type: BlockType; label: string }[] = [
   { type: 'video', label: 'Video' },
   { type: 'button', label: 'Button' },
   { type: 'divider', label: 'Divider' },
+  { type: 'table', label: 'Table' },
 ]
 
 function insertBlock(type: BlockType) {
@@ -67,7 +68,17 @@ const fontWeightOptions = Object.entries(tailwindMap.fontWeights)
 function setAlign(align: TextAlign) {
   const activeId = editor.activeBlockId.value
   if (!activeId) return
-  editor.updateBlock(activeId, { align } as any)
+  const block = editor.blocks.value.find(b => b.id === activeId)
+  if (block?.type === 'table' && editor.activeTableCell.value) {
+    const { row, col } = editor.activeTableCell.value
+    const b = block as TableBlock
+    const newRows = b.rows.map((r, ri) =>
+      r.map((c, ci) => ri === row && ci === col ? { ...c, align } : c),
+    )
+    editor.updateBlock(activeId, { rows: newRows } as any)
+  } else {
+    editor.updateBlock(activeId, { align } as any)
+  }
 }
 
 // ─── Link modal ───────────────────────────────────────────────────────────────
@@ -95,7 +106,12 @@ const activeBlock = computed(() => {
 })
 
 const currentAlign = computed<TextAlign>(() => {
-  return (activeBlock.value as any)?.align ?? 'left'
+  const block = activeBlock.value
+  if (block?.type === 'table' && editor.activeTableCell.value) {
+    const { row, col } = editor.activeTableCell.value
+    return (block as TableBlock).rows[row]?.[col]?.align ?? 'left'
+  }
+  return (block as any)?.align ?? 'left'
 })
 
 const isEditMode = computed(() => editor.mode.value === 'edit')

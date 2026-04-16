@@ -11,6 +11,7 @@ import type {
   DividerBlock,
   ButtonBlock,
   ModuleBlock,
+  TableBlock,
   TextAlign,
 } from '@/types'
 
@@ -93,6 +94,41 @@ function serializeBlock(block: Block): string {
     case 'module': {
       const b = block as ModuleBlock
       return b.html || ''
+    }
+
+    case 'table': {
+      const b = block as TableBlock
+      if (b.rows.length === 0) return ''
+
+      let html = '<table class="w-full border-collapse">'
+
+      if (b.hasHeader && b.rows.length > 0) {
+        html += '<thead><tr>'
+        b.rows[0].forEach(cell => {
+          const ac = alignClass(cell.align)
+          const cls = ['border', 'border-gray-300', 'px-3', 'py-2', 'bg-gray-100', 'font-semibold', ac].filter(Boolean)
+          html += `<th class="${cls.join(' ')}">${cell.html}</th>`
+        })
+        html += '</tr></thead>'
+      }
+
+      const bodyRows = b.hasHeader ? b.rows.slice(1) : b.rows
+      if (bodyRows.length > 0) {
+        html += '<tbody>'
+        bodyRows.forEach(row => {
+          html += '<tr>'
+          row.forEach(cell => {
+            const ac = alignClass(cell.align)
+            const cls = ['border', 'border-gray-300', 'px-3', 'py-2', ac].filter(Boolean)
+            html += `<td class="${cls.join(' ')}">${cell.html}</td>`
+          })
+          html += '</tr>'
+        })
+        html += '</tbody>'
+      }
+
+      html += '</table>'
+      return html
     }
 
     default:

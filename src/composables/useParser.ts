@@ -159,6 +159,39 @@ export function useParser() {
           break
         }
 
+        case tag === 'table': {
+          const rows: import('@/types').TableCell[][] = []
+          let hasHeader = false
+
+          const thead = el.querySelector(':scope > thead')
+          if (thead) {
+            hasHeader = true
+            const ths = Array.from(thead.querySelectorAll(':scope > tr > th'))
+            if (ths.length > 0) {
+              rows.push(ths.map(th => ({ html: th.innerHTML, align: extractAlign(th) })))
+            }
+          }
+
+          const tbody = el.querySelector(':scope > tbody') ?? el
+          const trs = Array.from(tbody.querySelectorAll(':scope > tr'))
+          trs.forEach(tr => {
+            const cells = Array.from(tr.querySelectorAll(':scope > td'))
+            if (cells.length > 0) {
+              rows.push(cells.map(td => ({ html: td.innerHTML, align: extractAlign(td) })))
+            }
+          })
+
+          if (rows.length === 0) {
+            rows.push(
+              [{ html: '', align: 'left' }, { html: '', align: 'left' }],
+              [{ html: '', align: 'left' }, { html: '', align: 'left' }],
+            )
+          }
+
+          blocks.push({ id: pid(), type: 'table', rows, hasHeader })
+          break
+        }
+
         default: {
           // Unknown or module HTML — preserve as module block
           blocks.push({
