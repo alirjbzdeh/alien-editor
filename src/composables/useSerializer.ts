@@ -66,6 +66,7 @@ function serializeBlock(block: Block): string {
 
     case 'video': {
       const b = block as VideoBlock
+      if (b.embed) return b.embed
       if (!b.src) return ''
       return `<video src="${escapeAttr(b.src)}" controls class="w-full"></video>`
     }

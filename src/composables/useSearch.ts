@@ -96,16 +96,18 @@ export function useSearch(
     return positions
   }
 
-  function navigateCodeMatch(positions: number[], idx: number) {
+  function navigateCodeMatch(positions: number[], idx: number, stealFocus = false) {
     const textarea = codeTextareaRef.value
     if (!textarea || positions.length === 0) return
     const pos = positions[idx]
-    textarea.focus()
-    textarea.setSelectionRange(pos, pos + searchQuery.value.length)
     const textBefore = codeEditorValue.value.substring(0, pos)
     const lineCount = textBefore.split('\n').length
     const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20
     textarea.scrollTop = Math.max(0, (lineCount - 5) * lineHeight)
+    if (stealFocus) {
+      textarea.focus()
+      textarea.setSelectionRange(pos, pos + searchQuery.value.length)
+    }
   }
 
   // ─── Match count ──────────────────────────────────────────────────────────
@@ -141,7 +143,7 @@ export function useSearch(
     if (mode.value === 'edit') {
       applyEditHighlights(editMatchRanges.value, currentMatchIndex.value)
     } else if (mode.value === 'code') {
-      navigateCodeMatch(codeMatchPositions.value, currentMatchIndex.value)
+      navigateCodeMatch(codeMatchPositions.value, currentMatchIndex.value, true)
     }
   }
 
@@ -151,7 +153,7 @@ export function useSearch(
     if (mode.value === 'edit') {
       applyEditHighlights(editMatchRanges.value, currentMatchIndex.value)
     } else if (mode.value === 'code') {
-      navigateCodeMatch(codeMatchPositions.value, currentMatchIndex.value)
+      navigateCodeMatch(codeMatchPositions.value, currentMatchIndex.value, true)
     }
   }
 

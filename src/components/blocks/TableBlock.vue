@@ -1,35 +1,51 @@
 <script setup lang="ts">
-import { ref, inject, watch, nextTick, computed } from 'vue'
+import { inject, watch, nextTick, computed, onMounted } from 'vue'
 import type { EditorContext, TableBlock, TableCell, TextAlign } from '@/types'
 
 const props = defineProps<{ block: TableBlock }>()
 const editor = inject<EditorContext>('alienEditor')!
 
-// ─── Cell ref management (2D array, same pattern as ListBlock) ────────────────
-const cellRefs = ref<(HTMLElement | null)[][]>([])
+// ─── Cell refs — plain (non-reactive) 2D array ───────────────────────────────
+// Intentionally NOT ref() — Vue's deep reactive proxy wrapping HTMLElements
+// inside nested arrays causes unreliable reads. DOM refs don't need reactivity.
+const cellRefs: (HTMLElement | null)[][] = []
 let isUpdatingFromInput = false
 
 function setCellRef(el: HTMLElement | null, row: number, col: number) {
-  if (!cellRefs.value[row]) cellRefs.value[row] = []
-  cellRefs.value[row][col] = el
+  if (!cellRefs[row]) cellRefs[row] = []
+  cellRefs[row][col] = el
+  // Set content immediately when Vue binds the element — covers remount after tab switch
+  if (el) {
+    const html = props.block.rows[row]?.[col]?.html ?? ''
+    if (el.innerHTML !== html) el.innerHTML = html
+  }
 }
 
-// ─── Sync external block changes to DOM (same pattern as ListBlock) ───────────
+// ─── Sync rows to DOM ─────────────────────────────────────────────────────────
+function syncRowsToDom(rows: typeof props.block.rows) {
+  rows.forEach((row, ri) => {
+    row.forEach((cell, ci) => {
+      const el = cellRefs[ri]?.[ci]
+      if (el && el.innerHTML !== cell.html) el.innerHTML = cell.html
+    })
+  })
+}
+
+// On external change (undo/redo, code-mode edits that replace blocks.value)
 watch(
   () => props.block.rows,
   (newRows) => {
     if (isUpdatingFromInput) return
-    nextTick(() => {
-      newRows.forEach((row, ri) => {
-        row.forEach((cell, ci) => {
-          const el = cellRefs.value[ri]?.[ci]
-          if (el && el.innerHTML !== cell.html) el.innerHTML = cell.html
-        })
-      })
-    })
+    nextTick(() => syncRowsToDom(newRows))
   },
   { deep: true },
 )
+
+// On mount — rAF ensures we run after Vue has fully committed and the browser
+// has finished its own layout/paint pass, so cellRefs are all populated.
+onMounted(() => {
+  requestAnimationFrame(() => syncRowsToDom(props.block.rows))
+})
 
 // ─── Focus / blur ─────────────────────────────────────────────────────────────
 let blurTimer: ReturnType<typeof setTimeout> | null = null
@@ -87,14 +103,14 @@ function onCellKeydown(row: number, col: number, e: KeyboardEvent) {
       // Tab on last cell — add new row and focus its first cell
       addRow()
       nextTick(() => {
-        cellRefs.value[rowCount]?.[0]?.focus()
+        cellRefs[rowCount]?.[0]?.focus()
       })
       return
     }
   }
 
   nextTick(() => {
-    cellRefs.value[nextRow]?.[nextCol]?.focus()
+    cellRefs[nextRow]?.[nextCol]?.focus()
   })
 }
 
@@ -196,6 +212,7 @@ const colCount = computed(() => props.block.rows[0]?.length ?? 0)
               @input="onCellInput(0, ci, $event)"
               @keydown="onCellKeydown(0, ci, $event)"
               @mousedown="editor.saveSelection()"
+              @mouseup="editor.saveSelection()"
               @keyup="editor.saveSelection()"
             >
               <!-- Delete column button (appears on header cell hover) -->
@@ -241,6 +258,7 @@ const colCount = computed(() => props.block.rows[0]?.length ?? 0)
               @input="onCellInput(bodyRowIndex(bi), ci, $event)"
               @keydown="onCellKeydown(bodyRowIndex(bi), ci, $event)"
               @mousedown="editor.saveSelection()"
+              @mouseup="editor.saveSelection()"
               @keyup="editor.saveSelection()"
             />
             <!-- Delete row button -->

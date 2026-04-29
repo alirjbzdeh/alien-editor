@@ -63,6 +63,7 @@ function onFocus() {
     @keydown="onKeydown"
     @focus="onFocus"
     @mousedown="editor.saveSelection()"
+    @mouseup="editor.saveSelection()"
     @keyup="editor.saveSelection()"
   />
 </template>

@@ -113,6 +113,7 @@ function setLevel(level: HeadingLevel) {
       @keydown="onKeydown"
       @focus="onFocus"
       @mousedown="editor.saveSelection()"
+      @mouseup="editor.saveSelection()"
       @keyup="editor.saveSelection()"
     />
   </div>

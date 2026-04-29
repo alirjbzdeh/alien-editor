@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { provide, watch, ref, onMounted, computed } from 'vue'
+import { provide, watch, ref, onMounted, computed, nextTick } from 'vue'
 import type { ColorOption, ModuleOption, EditorContext, MediaProvider } from '@/types'
 import { useEditorState } from '@/composables/useEditorState'
 import { useHistory } from '@/composables/useHistory'
@@ -73,8 +73,11 @@ const {
   prevMatch,
 } = useSearch(blocks, mode, codeEditorValue, codeTextareaRef)
 
-watch(isSearchOpen, (open) => {
-  if (open) searchBarRef.value?.focusInput()
+watch(isSearchOpen, async (open) => {
+  if (open) {
+    await nextTick()
+    searchBarRef.value?.focusInput()
+  }
 })
 
 // ─── Modal state ──────────────────────────────────────────────────────────────

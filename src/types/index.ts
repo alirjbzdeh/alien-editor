@@ -84,6 +84,7 @@ export interface ImageBlock extends BaseBlock {
 export interface VideoBlock extends BaseBlock {
   type: 'video'
   src: string
+  embed?: string
   classes: string[]
 }
 

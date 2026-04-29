@@ -91,6 +91,7 @@ function onFocus() {
       @keydown="onItemKeydown(index, $event)"
       @focus="onFocus"
       @mousedown="editor.saveSelection()"
+      @mouseup="editor.saveSelection()"
       @keyup="editor.saveSelection()"
     />
   </component>
