@@ -1,18 +1,41 @@
 import { ref, watch, nextTick, type Ref, type ComputedRef } from 'vue'
 import type { Block } from '@/types'
 
-// Returns how many HTML characters precede the cursor within a contenteditable element
+// Converts a plain-text character offset into an HTML string offset,
+// skipping over tags and treating HTML entities as one character each.
+function textOffsetToHtmlOffset(html: string, textOffset: number): number {
+  let text = 0
+  let i = 0
+  while (i < html.length && text < textOffset) {
+    if (html[i] === '<') {
+      const end = html.indexOf('>', i)
+      i = end === -1 ? html.length : end + 1
+    } else if (html[i] === '&') {
+      const end = html.indexOf(';', i)
+      text++
+      i = end === -1 ? i + 1 : end + 1
+    } else {
+      text++
+      i++
+    }
+  }
+  return i
+}
+
+// Returns how many HTML characters precede the cursor within a contenteditable element.
+// Uses toString() on a pre-cursor range (reliable plain-text count) then maps that
+// text offset back to an HTML position in the element's innerHTML — avoiding the
+// cloneContents() approach which adds spurious closing tags and produces wrong offsets.
 function getCursorHtmlOffset(contentEl: HTMLElement): number {
   const sel = window.getSelection()
   if (!sel || sel.rangeCount === 0) return 0
   try {
     const cursorRange = sel.getRangeAt(0)
-    const range = document.createRange()
-    range.setStart(contentEl, 0)
-    range.setEnd(cursorRange.startContainer, cursorRange.startOffset)
-    const temp = document.createElement('div')
-    temp.appendChild(range.cloneContents())
-    return temp.innerHTML.length
+    const preRange = document.createRange()
+    preRange.setStart(contentEl, 0)
+    preRange.setEnd(cursorRange.startContainer, cursorRange.startOffset)
+    const textOffset = preRange.toString().length
+    return textOffsetToHtmlOffset(contentEl.innerHTML, textOffset)
   } catch {
     return 0
   }

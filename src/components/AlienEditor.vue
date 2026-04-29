@@ -71,7 +71,7 @@ const {
   closeSearch,
   nextMatch,
   prevMatch,
-} = useSearch(blocks, mode, codeEditorValue, codeTextareaRef)
+} = useSearch(blocks, mode)
 
 watch(isSearchOpen, async (open) => {
   if (open) {
@@ -89,7 +89,7 @@ const imageUrlCallback = ref<((url: string) => void) | null>(null)
 const mediaInsertCallback = ref<((html: string) => void) | null>(null)
 
 // ─── Keyboard shortcuts ───────────────────────────────────────────────────────
-useKeyboardShortcuts(undo, redo, openSearch)
+useKeyboardShortcuts(undo, redo, openSearch, mode)
 
 // ─── Initialize blocks from modelValue ───────────────────────────────────────
 let isInitialized = false
@@ -185,6 +185,7 @@ provide('alienEditor', {
       <textarea
         ref="codeTextareaRef"
         class="w-full bg-transparent text-green-400 font-mono text-sm leading-relaxed resize-y outline-none min-h-[276px] whitespace-pre"
+        dir="ltr"
         :value="codeEditorValue"
         @input="onCodeInput"
         spellcheck="false"

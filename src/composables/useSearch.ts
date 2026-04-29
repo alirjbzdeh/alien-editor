@@ -4,14 +4,11 @@ import type { Block, EditorMode } from '@/types'
 export function useSearch(
   blocks: Ref<Block[]>,
   mode: Ref<EditorMode>,
-  codeEditorValue: Ref<string>,
-  codeTextareaRef: Ref<HTMLTextAreaElement | null>,
 ) {
   const isSearchOpen = ref(false)
   const searchQuery = ref('')
   const currentMatchIndex = ref(0)
   const editMatchRanges = ref<Range[]>([])
-  const codeMatchPositions = ref<number[]>([])
 
   // ─── Open / Close ─────────────────────────────────────────────────────────
   function openSearch() {
@@ -22,7 +19,6 @@ export function useSearch(
     isSearchOpen.value = false
     searchQuery.value = ''
     clearEditHighlights()
-    codeMatchPositions.value = []
   }
 
   // ─── Edit mode: CSS Custom Highlight API ──────────────────────────────────
@@ -81,80 +77,35 @@ export function useSearch(
     }
   }
 
-  // ─── Code mode search ─────────────────────────────────────────────────────
-  function findCodePositions(query: string): number[] {
-    if (!query) return []
-    const text = codeEditorValue.value
-    const lowerText = text.toLowerCase()
-    const lowerQuery = query.toLowerCase()
-    const positions: number[] = []
-    let idx = 0
-    while ((idx = lowerText.indexOf(lowerQuery, idx)) !== -1) {
-      positions.push(idx)
-      idx += query.length
-    }
-    return positions
-  }
-
-  function navigateCodeMatch(positions: number[], idx: number, stealFocus = false) {
-    const textarea = codeTextareaRef.value
-    if (!textarea || positions.length === 0) return
-    const pos = positions[idx]
-    const textBefore = codeEditorValue.value.substring(0, pos)
-    const lineCount = textBefore.split('\n').length
-    const lineHeight = parseInt(getComputedStyle(textarea).lineHeight) || 20
-    textarea.scrollTop = Math.max(0, (lineCount - 5) * lineHeight)
-    if (stealFocus) {
-      textarea.focus()
-      textarea.setSelectionRange(pos, pos + searchQuery.value.length)
-    }
-  }
-
   // ─── Match count ──────────────────────────────────────────────────────────
   const matchCount = computed(() => {
     if (mode.value === 'edit') return editMatchRanges.value.length
-    if (mode.value === 'code') return codeMatchPositions.value.length
     return 0
   })
 
-  // ─── Execute search ───────────────────────────────────────────────────────
+  // ─── Execute search (edit mode only) ──────────────────────────────────────
   async function executeSearch() {
     clearEditHighlights()
-    codeMatchPositions.value = []
     currentMatchIndex.value = 0
 
-    if (!searchQuery.value) return
+    if (!searchQuery.value || mode.value !== 'edit') return
 
-    if (mode.value === 'edit') {
-      await nextTick()
-      const ranges = findEditRanges(searchQuery.value)
-      editMatchRanges.value = ranges
-      applyEditHighlights(ranges, 0)
-    } else if (mode.value === 'code') {
-      const positions = findCodePositions(searchQuery.value)
-      codeMatchPositions.value = positions
-      if (positions.length > 0) navigateCodeMatch(positions, 0)
-    }
+    await nextTick()
+    const ranges = findEditRanges(searchQuery.value)
+    editMatchRanges.value = ranges
+    applyEditHighlights(ranges, 0)
   }
 
   function nextMatch() {
     if (matchCount.value === 0) return
     currentMatchIndex.value = (currentMatchIndex.value + 1) % matchCount.value
-    if (mode.value === 'edit') {
-      applyEditHighlights(editMatchRanges.value, currentMatchIndex.value)
-    } else if (mode.value === 'code') {
-      navigateCodeMatch(codeMatchPositions.value, currentMatchIndex.value, true)
-    }
+    applyEditHighlights(editMatchRanges.value, currentMatchIndex.value)
   }
 
   function prevMatch() {
     if (matchCount.value === 0) return
     currentMatchIndex.value = (currentMatchIndex.value - 1 + matchCount.value) % matchCount.value
-    if (mode.value === 'edit') {
-      applyEditHighlights(editMatchRanges.value, currentMatchIndex.value)
-    } else if (mode.value === 'code') {
-      navigateCodeMatch(codeMatchPositions.value, currentMatchIndex.value, true)
-    }
+    applyEditHighlights(editMatchRanges.value, currentMatchIndex.value)
   }
 
   // ─── Watchers ─────────────────────────────────────────────────────────────
@@ -162,7 +113,6 @@ export function useSearch(
 
   watch(mode, () => {
     clearEditHighlights()
-    codeMatchPositions.value = []
     if (searchQuery.value && isSearchOpen.value) nextTick(() => executeSearch())
   })
 
@@ -177,10 +127,7 @@ export function useSearch(
   )
 
   watch(isSearchOpen, (open) => {
-    if (!open) {
-      clearEditHighlights()
-      codeMatchPositions.value = []
-    }
+    if (!open) clearEditHighlights()
   })
 
   return {

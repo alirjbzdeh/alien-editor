@@ -354,8 +354,8 @@ function closeDropdowns() {
       <div class="ae-divider-v w-px h-5 bg-gray-200 mx-1" />
     </template>
 
-    <!-- Search (visible in edit and code mode) -->
-    <template v-if="editor.mode.value !== 'preview'">
+    <!-- Search (edit mode only) -->
+    <template v-if="editor.mode.value === 'edit'">
       <ToolbarButton title="Find (Ctrl+F / ⌘F)" @action="editor.openSearch()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="11" cy="11" r="8" />

@@ -1,6 +1,7 @@
-import { onMounted, onUnmounted } from 'vue'
+import { onMounted, onUnmounted, type Ref } from 'vue'
+import type { EditorMode } from '@/types'
 
-export function useKeyboardShortcuts(undo: () => void, redo: () => void, openSearch: () => void) {
+export function useKeyboardShortcuts(undo: () => void, redo: () => void, openSearch: () => void, mode: Ref<EditorMode>) {
   function onKeydown(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
       e.preventDefault()
@@ -10,7 +11,7 @@ export function useKeyboardShortcuts(undo: () => void, redo: () => void, openSea
       e.preventDefault()
       redo()
     }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'f' && mode.value === 'edit') {
       e.preventDefault()
       openSearch()
     }
